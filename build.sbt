@@ -2,14 +2,24 @@ ThisBuild / scalaVersion := "3.6.3"
 
 ThisBuild / organization := "app.wishingtree"
 
+ThisBuild / scalacOptions ++= Seq(
+  "-no-indent",
+  "-rewrite",
+  "-source:3.4-migration"
+)
+
 lazy val root = project
   .in(file("."))
+  .settings(
+    name            := "wishingtree",
+    publishArtifact := false
+  )
   .aggregate(app)
 
 lazy val app = project
   .in(file("app"))
   .settings(
-    name := "wishingtree-app",
+    name := "app",
     libraryDependencies ++= Seq(
       "dev.wishingtree"             %% "branch"                  % "0.0.7",
       "com.softwaremill.sttp.tapir" %% "tapir-core"              % "1.11.13",

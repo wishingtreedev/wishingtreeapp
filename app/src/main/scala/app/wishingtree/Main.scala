@@ -1,7 +1,9 @@
 package app.wishingtree
 
+import app.wishingtree.routing.Routing.appEndpoint
 import app.wishingtree.views.TemplateResponse
 import app.wishingtree.views.TemplateResponse.templateBody
+import dev.wishingtree.branch.macaroni.fs.PathOps.*
 import dev.wishingtree.branch.mustachio.Stache
 import dev.wishingtree.branch.mustachio.Stache.Str
 import org.apache.pekko.actor.ActorSystem
@@ -11,35 +13,30 @@ import sttp.tapir.server.pekkohttp.PekkoHttpServerInterpreter
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
 import scala.io.StdIn
+import scala.language.experimental.betterFors
 
 object Main {
 
-  val template =
-    """
-      |<!DOCTYPE html>
-      |<html>
-      |<head>
-      |    <title>Wishing Tree</title>
-      |</head>
-      |<body>
-      |    <h1>Wishing Tree</h1>
-      |    <p>Hello, {{name}}!</p>
-      |</body>
-      |</html>
-      |""".stripMargin
-
   val templateTest =
-    endpoint.get
+    appEndpoint.get
       .in("")
       .in(query[Option[String]]("name"))
       .out(templateBody)
 
+  implicit val ec: scala.concurrent.ExecutionContext =
+    scala.concurrent.ExecutionContext.global
+
   val templateRoute =
-    templateTest.serverLogicPure[Future](maybeName =>
-      val stache =
-        Stache.obj("name" -> Str(maybeName.getOrElse("Wishing Tree")))
-      Right(TemplateResponse(template, stache, None))
-    )
+    templateTest.serverLogic[Future] { maybeName =>
+      for {
+        pretendToFetchData <- Future.successful {
+                                maybeName.getOrElse("Wishing Tree")
+                              }
+        stache              = Stache.obj(
+                                "name" -> Str(pretendToFetchData)
+                              )
+      } yield TemplateResponse(>> / "hello.mustache", stache, None)
+    }
 
   def main(args: Array[String]): Unit = {
 
